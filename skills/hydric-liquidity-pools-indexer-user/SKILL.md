@@ -174,7 +174,12 @@ query GetTopPools {
 query SearchTokens($search: String!) {
   SingleChainToken(
     limit: 10
-    where: { _or: [{ normalizedSymbol: { _ilike: $search } }, { normalizedName: { _ilike: $search } }] }
+    where: {
+      _or: [
+        { normalizedSymbol: { _ilike: $search } }
+        { normalizedName: { _ilike: $search } }
+      ]
+    }
     order_by: { trackedTotalValuePooledUsd: desc }
   ) {
     id
