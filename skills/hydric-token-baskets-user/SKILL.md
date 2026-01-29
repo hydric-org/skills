@@ -47,9 +47,11 @@ interface IBasket {
   logo: string; // URL to the basket's logo image
   description: string; // Description of the basket's criteria
   lastUpdated: string; // ISO 8601 Timestamp of the last update
-  index: string[]; // Array of Token Addresses (always lowercase)
+  index: string[]; // Array of Token Addresses (always lowercase). The zero address represents the native token.
 }
 ```
+
+**Note:** The zero address (`0x0000000000000000000000000000000000000000`) is explicitly used to represent the Native Coin of the network (e.g., ETH on ID 1, MATIC on ID 137).
 
 ### Response Example
 
