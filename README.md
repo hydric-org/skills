@@ -9,13 +9,13 @@ These skills are designed to be used with [skills.sh](https://skills.sh/).
 To install a specific skill to your agent, run:
 
 ```bash
-npx skills add hydric-org/skills/<skill-name>
+npx skills add https://github.com/hydric-org/skills --skill <skill-name>
 ```
 
 For example:
 
 ```bash
-npx skills add hydric-org/skills/hydric-liquidity-pools-indexer-user
+npx skills add https://github.com/hydric-org/skills --skill hydric-token-baskets-user
 ```
 
 ## Available Skills
