@@ -12,11 +12,14 @@ The **hydric Token Baskets** repository is a source of truth for curated collect
 **Base URL Pattern:**
 
 ```
-https://cdn.jsdelivr.net/gh/hydric-org/token-baskets/baskets/{chainId}/{basketId}.json
+https://cdn.jsdelivr.net/gh/hydric-org/token-baskets/baskets/{basketId}.json
 ```
 
-**Example: Get all USD Stablecoins on Ethereum (Chain ID 1):**
-`https://cdn.jsdelivr.net/gh/hydric-org/token-baskets/baskets/1/usd-stablecoins.json`
+**Global List:**
+`https://cdn.jsdelivr.net/gh/hydric-org/token-baskets/baskets/all.json`
+
+**Example: Get the USD Stablecoins basket:**
+`https://cdn.jsdelivr.net/gh/hydric-org/token-baskets/baskets/usd-stablecoins.json`
 
 ## 2. Core Concepts
 
@@ -30,7 +33,7 @@ For the most up-to-date list of available baskets, criteria, and IDs, please ref
 
 ### 2.2 Supported Network (Chain) IDs
 
-Use these IDs to select the _network_ you are querying.
+Use these IDs to access the specific addresses within a basket.
 
 **Source of Truth:**
 For the list of supported networks and their Chain IDs, strictly refer to:
@@ -47,7 +50,9 @@ interface IBasket {
   logo: string; // URL to the basket's logo image
   description: string; // Description of the basket's criteria
   lastUpdated: string; // ISO 8601 Timestamp of the last update
-  index: string[]; // Array of Token Addresses (always lowercase). The zero address represents the native token.
+  addresses: {
+    [chainId: string]: string[]; // Map of Chain ID to Array of Token Addresses (lowercase)
+  };
 }
 ```
 
@@ -62,10 +67,13 @@ interface IBasket {
   "logo": "https://cdn.jsdelivr.net/...",
   "description": "A curated list of multiple USD Stablecoins...",
   "lastUpdated": "2024-10-24T10:00:00Z",
-  "index": [
-    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-    "0xdac17f958d2ee523a2206206994597c13d831ec7"
-  ]
+  "addresses": {
+    "1": [
+      "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "0xdac17f958d2ee523a2206206994597c13d831ec7"
+    ],
+    "8453": ["0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"]
+  }
 }
 ```
 
@@ -73,22 +81,26 @@ interface IBasket {
 
 ### Scenario: Finding Safe Asset Tokens
 
-If you are building a DeFi application and need to verify if a user's token is a recognized stablecoin, you can fetch the basket and check for inclusion.
+If you are building a DeFi application and need to verify if a user's token is a recognized stablecoin on a specific chain (e.g., Ethereum ID 1).
 
 **Implementation Logic (Pseudo-code):**
 
 ```javascript
 async function isVerifiedStablecoin(chainId, tokenAddress) {
   const basketId = "usd-stablecoins";
-  const url = `https://cdn.jsdelivr.net/gh/hydric-org/token-baskets/baskets/${chainId}/${basketId}.json`;
+  // Fetch the consolidated basket file
+  const url = `https://cdn.jsdelivr.net/gh/hydric-org/token-baskets/baskets/${basketId}.json`;
 
   try {
     const response = await fetch(url);
-    if (!response.ok) return false; // Basket might not exist for this chain
+    if (!response.ok) return false;
 
     const data = await response.json();
+    // Access addresses for the specific chain
+    const chainAddresses = data.addresses[chainId.toString()] || [];
+
     // Normalize to lowercase for comparison
-    const allowedTokens = new Set(data.index.map((t) => t.toLowerCase()));
+    const allowedTokens = new Set(chainAddresses.map((t) => t.toLowerCase()));
 
     return allowedTokens.has(tokenAddress.toLowerCase());
   } catch (error) {
@@ -98,30 +110,33 @@ async function isVerifiedStablecoin(chainId, tokenAddress) {
 }
 ```
 
-### Scenario: displaying Token Options
+### Scenario: Displaying Token Options
 
 When a user selects a chain, you can offer them curated lists of tokens to swap or deposit.
 
 1.  **Select Chain**: User selects Base (8453).
-2.  **Fetch Lists**: Fetch `usd-stablecoins` and `eth-pegged-tokens` for ChainID 8453.
-3.  **Display**: Show the tokens from the `index` array, using the `name` and `logo` from the basket metadata for the group header.
+2.  **Fetch Lists**: Fetch `usd-stablecoins.json` and `eth-pegged-tokens.json` (or just `all.json` to get everything in one request).
+3.  **Display**: Look up `addresses["8453"]` in each basket. If the array is not empty, display the basket using its `name` and `logo`.
 
 ### Scenario: Discovering Sector-Specific Liquidity Pools
 
-You can use the tokens in a basket to filter for relevant liquidity pools. For example, finding all "Gold" pools on a DEX indexer.
+You can use the tokens in a basket to filter for relevant liquidity pools.
 
 **Implementation Logic (Pseudo-code):**
 
 ```javascript
 async function getGoldPools(chainId) {
-  // 1. Get the authoritative list of Gold tokens for this chain
-  const goldBasketUrl = `https://cdn.jsdelivr.net/gh/hydric-org/token-baskets/baskets/${chainId}/xau-stablecoins.json`;
+  // 1. Get the authoritative list of Gold tokens for all chains
+  const goldBasketUrl = `https://cdn.jsdelivr.net/gh/hydric-org/token-baskets/baskets/xau-stablecoins.json`;
   const basketResponse = await fetch(goldBasketUrl);
   const basketData = await basketResponse.json();
-  const goldTokens = basketData.index; // ['0x...', '0x...']
 
-  // 2. Query your Indexer/API for pools containing ANY of these tokens
-  // Example using a hypothetical Indexer API
+  // 2. Extract tokens for the target chain
+  const goldTokens = basketData.addresses[chainId.toString()] || [];
+
+  if (goldTokens.length === 0) return [];
+
+  // 3. Query your Indexer/API for pools containing ANY of these tokens
   const pools = await indexerApi.query({
     where: {
       chainId: chainId,
@@ -135,15 +150,16 @@ async function getGoldPools(chainId) {
 
 ## 5. Best Practices
 
-1.  **Caching**: The baskets are static files served via CDN. You should cache them in your application to reduce network requests. Use the `lastUpdated` field to determine if re-fetching is necessary later, or simply set a reasonable TTL (e.g., 1 hour).
-2.  **Error Handling**: Not all baskets exist on all chains. If a fetch returns a 404, it simply means that specific basket type is not tracked or available on that specific network. Handle this gracefully (e.g., treat it as an empty list).
-3.  **Case Sensitivity**: The `index` array strictly contains **lowercase** addresses. Ensure you normalize your input or comparison tokens to lowercase to match successfully.
+1.  **Caching**: The baskets are static files served via CDN. Cache them! Now that files contain all chains, valid data for one chain is valid for all.
+2.  **Data size**: Since files now contain all chains, they are slightly larger but reduce the number of HTTP requests needed.
+3.  **Error Handling**: If a fetch returns a 404, the basket ID is invalid. If `addresses[chainId]` is undefined or empty, the basket has no tokens for that network.
+4.  **Case Sensitivity**: addresses are **lowercase**.
 
 ## 6. How Baskets are Curated
 
 The baskets are generated by an automated agentic system that:
 
 1.  **Scans**: Finds potential tokens based on keywords and market data.
-2.  **Validates**: Uses LLMs (`validationPrompt`) to verify project legitimacy, price peg adherence (e.g., strict 0.9-1.1 range for USD), and contract safety.
-3.  **Filters**: Excludes scams, unpegged assets, and malicious impersonators.
+2.  **Validates**: Uses LLMs (`validationPrompt`) to verify project legitimacy and price peg.
+3.  **Filters**: Excludes scams, unpegged assets (checked against `blocklist.json`), and malicious impersonators.
 4.  **Updates**: Commits changes to the repo, which are then reflected on the CDN.
