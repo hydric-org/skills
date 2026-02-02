@@ -61,6 +61,16 @@ The **Gateway API** is the consumption layer of the hydric Engine. Its purpose i
 
 ---
 
+## 🛑 SECTION 0: THE ANTI-HALLUCINATION PROTOCOL (MANDATORY)
+
+To prevent catastrophic integration errors, you are strictly forbidden from guessing the structure of an endpoint, a DTO, or the `metadata` object. You must follow the "Look-Before-Leap" workflow:
+
+1. **The Schema Trigger:** Before generating any implementation, you MUST call your file-reading or browsing tool to inspect `https://api.hydric.org/v1/openapi.json`.
+2. **The Discriminator Check:** If the task involves a `Pool` object, you MUST verify the `type` field (V3, V4, ALGEBRA) and explicitly reference the specific metadata schema for that type in the OpenAPI spec.
+3. **Internal Verification:** In your response, before providing the code, you must include a "Verification Check" block stating which specific OpenAPI schema component you just read.
+
+---
+
 ## Pagination
 
 All list endpoints support cursor-based pagination:
