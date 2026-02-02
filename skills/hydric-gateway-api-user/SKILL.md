@@ -129,6 +129,60 @@ GET /v1/pools/{chainId}/{poolAddress}
 
 ---
 
+## Pool Filters
+
+The `/v1/pools/search` endpoint supports two filtering strategies:
+
+### Include Filters (Allowlist)
+
+Use `protocols` and `poolTypes` to restrict results to specific values:
+
+```json
+{
+  "filters": {
+    "protocols": ["uniswap-v3", "uniswap-v4"],
+    "poolTypes": ["V3", "V4"]
+  }
+}
+```
+
+> [!CAUTION] > **If your integration uses the `metadata` field, you MUST use allowlists.**
+>
+> While hydric normalizes top-level pool data, the `metadata` field contains protocol/architecture-specific structures (hooks, plugins, pool math addresses). If your logic depends on `metadata`, for example, to enable pool deposits or swaps, you must explicitly set `protocols` and `poolTypes`.
+>
+> **Why?** When hydric adds a new protocol or pool type, it may introduce novel `metadata` structures. Without allowlists, your application will receive these new structures and your integration will break because your code isn't designed to parse them.
+
+### Blocked Filters (Blocklist)
+
+Use `blockedProtocols` and `blockedPoolTypes` to exclude specific values:
+
+```json
+{
+  "filters": {
+    "blockedProtocols": ["sushiswap-v3"],
+    "blockedPoolTypes": ["ALGEBRA"]
+  }
+}
+```
+
+**When to use:** Read-only dashboards that only display normalized fields (TVL, volume, yields) and don't interact with `metadata`, just want to filter out specific protocols or pool types.
+
+### Precedence
+
+- If `protocols` is provided, `blockedProtocols` is ignored.
+- If `poolTypes` is provided, `blockedPoolTypes` is ignored.
+- Empty arrays default to the blocklist approach.
+
+### Available Pool Types
+
+`V3`, `V4`, `ALGEBRA`, `SLIPSTREAM`
+
+### Discovering Protocol IDs
+
+Use `GET /v1/protocols` to get all supported protocol IDs (e.g., `uniswap-v3`, `algebra-integral`).
+
+---
+
 ## Pool Type Metadata
 
 The `metadata` field in the pool object varies by pool `type`:
