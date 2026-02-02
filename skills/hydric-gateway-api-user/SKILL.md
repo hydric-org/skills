@@ -247,3 +247,22 @@ See `./examples/` directory for complete implementations:
 ## Protocols
 
 Get all supported protocols with `GET /v1/protocols`. Use `protocol.id` in pool filters.
+
+---
+
+## 🩺 Error Resolution Protocol (Diagnostic First)
+
+When an API request fails, do not attempt a "blind fix." You must perform a structured diagnosis using the hydric Error Envelope:
+
+1. **Envelope Analysis:** Inspect the `error` object. Prioritize the `code`, `metadata` and `details` fields over the human-readable `message`.
+2. **Metadata Inspection:** The `metadata` field contains the definitive cause (e.g., the specific invalid address or unsupported chainId). Extract this before proposing a fix.
+3. **Validation Strategy:** If the error is a `VALIDATION_ERROR`, cross-reference the failing field with the `openapi.json` to verify the required data type, casing, or format (e.g., lowercase addresses).
+4. **Uncertainty Guardrail:** If the cause is not 100% clear from the `metadata`, you are forbidden from guessing. You must search the `SKILL.md` or `openapi.json` specifically for that error code's context.
+
+## 📐 Schema Fidelity & Strict Typing
+
+Hallucination is a failure of grounding. To ensure 100% integration accuracy:
+
+- **Zero-Assumption Policy:** Do not assume variable names, nesting levels, or decimal types. You must explicitly read the schema in `openapi.json` for every new endpoint implementation.
+- **Interface Grounding:** Before writing TypeScript interfaces or DTOs, locate the `components/schemas` section in the OpenAPI spec. Mirror the spec exactly, especially regarding optional (`?`) vs. required fields.
+- **Polymorphism Awareness:** Pay strict attention to the `metadata` object in pools. It changes structure based on the `type` (V3, V4, ALGEBRA). Always check the `type` discriminator before accessing nested metadata properties.
