@@ -80,8 +80,8 @@ Find best yield for a token across ALL chains:
 
 1. `POST /v1/tokens/search` with `{ "search": "USDC" }` → get all chain addresses.
 2. `POST /v1/pools/search` with those addresses in `tokensA`.
-3. Set `orderBy: { field: 'yield', direction: 'desc', timeframe: '24h' }`.
-4. Filter `minimumTotalValueLockedUsd: 50000` to avoid low-liquidity traps.
+3. Set `config: { orderBy: { field: 'yield', direction: 'desc', timeframe: '24h' } }`.
+4. Filter `filters: { minimumTotalValueLockedUsd: 50000 }` to avoid low-liquidity traps.
 
 ### Pattern B: Single-Chain Yield Discovery
 
@@ -89,14 +89,14 @@ Find best yield on a SPECIFIC chain:
 
 1. `POST /v1/tokens/{chainId}/search` with `{ "search": "USDC" }`.
 2. `POST /v1/pools/search` with single address + chainId.
-3. Set `orderBy: { field: 'yield', direction: 'desc', timeframe: '24h' }`.
+3. Set `config: { orderBy: { field: 'yield', direction: 'desc', timeframe: '24h' } }`.
 
 ### Pattern C: Multi-Chain Token List
 
 Get most liquid tokens across chains:
 
-1. `POST /v1/tokens` with `orderBy: { field: 'tvl', direction: 'desc' }`.
-2. Optionally filter by `chainIds: [1, 8453]`.
+1. `POST /v1/tokens` with `config: { orderBy: { field: 'tvl', direction: 'desc' } }`.
+2. Optionally filter by `filters: { chainIds: [1, 8453] }`.
 
 ### Pattern D: Token Baskets (Stablecoins, LSTs, etc.)
 
