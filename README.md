@@ -30,3 +30,23 @@ Comprehensive guide for interacting with the hydric Liquidity Pools Indexer (Env
 2. Fetch token metadata, prices, and liquidity pool metrics.
 3. Aggregate liquidity pool protocols data.
 4. Retrieve historical time-series data about liquidity pools.
+
+### [Hydric Gateway API User](./skills/hydric-gateway-api-user)
+
+**Name:** `hydric-gateway-api-user`
+
+Comprehensive guide for interacting with the hydric Gateway API. Use this skill when you need to:
+
+1. Query real-time Liquidity Pool data (TVL, Volume, Fees, Yields, etc.).
+2. Fetch token metadata, prices, and liquidity pool metrics.
+3. Aggregate liquidity pool protocols data.
+4. Retrieve historical time-series data about liquidity pools.
+
+### [Hydric Token Baskets User](./skills/hydric-token-baskets-user)
+
+**Name:** `hydric-token-baskets-user`
+
+Comprehensive guide for interacting with the hydric Token Baskets. Use this skill when you need to:
+
+1. Get many tokens from a sector (e.g. stablecoins, LSTs, etc.)
+2. Get token baskets info (e.g. name, logo, description, tokens, etc.)
