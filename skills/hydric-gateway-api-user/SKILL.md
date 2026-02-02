@@ -177,6 +177,34 @@ Use `blockedProtocols` and `blockedPoolTypes` to exclude specific values:
 
 **When to use:** Read-only dashboards that only display normalized fields (TVL, volume, yields) and don't interact with `metadata`, just want to filter out specific protocols or pool types.
 
+### ⛓️ Implicit Chain Filtering (Targeted Pool Queries)
+
+There is no global `filters.chainIds` parameter in the **Pool Search**. Instead, the `tokensA` and `tokensB` arrays serve as your primary filtering mechanism.
+
+#### 1. The "Narrow Scope" Implementation
+
+When a user requests pools on a **specific chain** (e.g., "Find USDC pools only on Base"):
+
+- **Strategy:** Do not perform a global fan-out.
+- **Action:** Filter your internal mapping to include only the `address` + `chainId` pairs for the target network.
+- **Mapping:** Pass only these specific pairs into the `tokensA` or `tokensB` array. The API will automatically restrict the result set to the networks represented in your input.
+
+#### 2. Implementation Guardrail
+
+- **Efficiency:** This implicit filtering is more efficient than a separate filter key. By narrowing the `BlockchainAddress[]` input at the start, you ensure the API only scans relevant network indices.
+- **Multi-Chain Filtering:** To target a small subset of chains (e.g., "Base and Scroll"), simply include the addresses for both networks in the array and exclude others.
+
+#### 3. Example Mapping
+
+- **User Intent:** "USDC pools on Base (8453)"
+- **AI Tool Call:**
+
+```json
+  "tokensA": [
+  { "chainId": 8453, "address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" }
+  ]
+```
+
 ### Precedence
 
 - If `protocols` is provided, `blockedProtocols` is ignored.
