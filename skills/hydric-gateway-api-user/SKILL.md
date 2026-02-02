@@ -265,7 +265,7 @@ When an API request fails, do not attempt a "blind fix." You must perform a stru
 
 Hallucination is a failure of grounding. To ensure 100% integration accuracy:
 
-- **Zero-Assumption Policy:** Do not assume variable names, nesting levels, or decimal types. You must explicitly read the schema in `openapi.json` for every new endpoint implementation.
+- **Zero-Assumption Policy:** Do not assume response schema, variable names, nesting levels, or decimal types. You must explicitly read the schema in `openapi.json` for every new endpoint implementation.
 - **Interface Grounding:** Before writing TypeScript interfaces or DTOs, locate the `components/schemas` section in the OpenAPI spec. Mirror the spec exactly, especially regarding optional (`?`) vs. required fields.
 - **Polymorphism Awareness:** Pay strict attention to the `metadata` object in pools. It changes structure based on the `type` (V3, V4, ALGEBRA). Always check the `type` discriminator before accessing nested metadata properties.
 
