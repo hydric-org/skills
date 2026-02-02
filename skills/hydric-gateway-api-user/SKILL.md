@@ -259,6 +259,8 @@ When an API request fails, do not attempt a "blind fix." You must perform a stru
 3. **Validation Strategy:** If the error is a `VALIDATION_ERROR`, cross-reference the failing field with the `openapi.json` to verify the required data type, casing, or format (e.g., lowercase addresses).
 4. **Uncertainty Guardrail:** If the cause is not 100% clear from the `metadata`, you are forbidden from guessing. You must search the `SKILL.md` or `openapi.json` specifically for that error code's context.
 
+---
+
 ## 📐 Schema Fidelity & Strict Typing
 
 Hallucination is a failure of grounding. To ensure 100% integration accuracy:
@@ -266,3 +268,22 @@ Hallucination is a failure of grounding. To ensure 100% integration accuracy:
 - **Zero-Assumption Policy:** Do not assume variable names, nesting levels, or decimal types. You must explicitly read the schema in `openapi.json` for every new endpoint implementation.
 - **Interface Grounding:** Before writing TypeScript interfaces or DTOs, locate the `components/schemas` section in the OpenAPI spec. Mirror the spec exactly, especially regarding optional (`?`) vs. required fields.
 - **Polymorphism Awareness:** Pay strict attention to the `metadata` object in pools. It changes structure based on the `type` (V3, V4, ALGEBRA). Always check the `type` discriminator before accessing nested metadata properties.
+
+---
+
+## 🌐 Multi-Chain Token Orchestration (Fan-out Logic)
+
+A **Multi-Chain Token** represents a single asset's global identity. You must treat the `addresses` array as a collection of **mandatory targets**, not options.
+
+### 1. The Global Search Pattern
+
+When a user asks for "{Ask} for {Asset}" without specifying a chain, you must perform a **Global Fan-out**:
+
+1. **Identify:** Call the Multi-Chain Token endpoints to retrieve the full `addresses[]` map.
+2. **Batch:** Do not pick a single entry. Map the entire `addresses[]` array into the parameters (e.g., `tokens`) of your implementation.
+3. **Execution:** This ensures the result captures the token's presence across Ethereum, Base, Scroll, and other networks simultaneously.
+
+### 2. Discrimination vs. Aggregation
+
+- **Discrimination:** Use the `chainId` within each address object to filter results when the user specifies a region (e.g., "Only show me USDC on Base and Unichain").
+- **Single-Chain Fallback:** If the user specifies a single chain, refer to the **Single-Chain Token** endpoints to minimize payload size.
