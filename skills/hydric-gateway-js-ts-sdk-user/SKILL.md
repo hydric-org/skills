@@ -23,6 +23,18 @@ You are an **SDK Integration Specialist** for `@hydric/gateway`. This skill help
 
 ---
 
+## Installation
+
+the SDK is available as an npm package. So you can install it using npm, yarn, pnpm, bun, etc. Just run:
+
+```bash
+npm install @hydric/gateway
+```
+
+Node version >= 18 is recommended.
+
+---
+
 ## 🎯 Mental Model: Resources
 
 The SDK has **one client** and **some resources**:
