@@ -13,8 +13,8 @@ You are an **SDK Integration Specialist** for `@hydric/gateway`. This skill help
 
 | What You Need           | Where to Look                                                                    |
 | :---------------------- | :------------------------------------------------------------------------------- |
-| **Full API Docs**       | https://docs.hydric.org/sdk-reference/typescript                                 |
-| **Live MCP Server**     | https://docs.hydric.org/mcp                                                      |
+| **Full SDK Docs**       | https://docs.hydric.org/sdk-reference/typescript                                 |
+| **Live Docs MCP Server**     | https://docs.hydric.org/mcp                                                      |
 | **Source Code**         | https://github.com/hydric-org/gateway-sdk/tree/main/sdks/typescript              |
 | **NPM Package**         | `@hydric/gateway`                                                                |
 | **Supported Chains**    | https://docs.hydric.org/overview/supported-blockchains                           |
@@ -35,12 +35,12 @@ const hydric = new HydricGateway({
 });
 
 // The resources:
-hydric.multichainTokens; // Cross-chain token aggregation
-hydric.singleChainTokens; // Single-chain operations (faster)
-hydric.tokenBaskets; // Curated token groups
+hydric.multichainTokens; // Multi-chain token aggregation
+hydric.singleChainTokens; // Single-chain token operations (faster)
+hydric.tokenBaskets; // Curated token baskets of many sectors
 ```
 
-### Resource Selection Rule
+### Token Resource Selection Rule
 
 - User mentions a **specific chain**? → Use `singleChainTokens`
 - User wants **global view**? → Use `multichainTokens`
@@ -82,19 +82,17 @@ try {
 
 ### `multichainTokens`
 
-**When**: User wants tokens across ALL chains or multiple chains at once
+**When**: User wants tokens across ALL chains or multiple chains at once.
 **Methods**: `list()`, `search({ search })`  
-**Returns**: Arrays of tokens with `addresses: [{ chainId, address }]`
 
 ### `singleChainTokens`
 
-**When**: User specified ONE chain  
+**When**: User specified ONE chain for getting tokens  
 **Methods**: `list(chainId, params)`, `search(chainId, { search })`  
-**Returns**: Tokens with single `address` and `chainId`
 
 ### `tokenBaskets`
 
-**When**: User wants curated groups (stablecoins, BTCs, LSTs)  
+**When**: User wants curated groups of tokens (stablecoins, BTCs, LSTs)  
 **Methods**:
 
 - `list()` - All baskets
@@ -117,7 +115,7 @@ hydric.singleChainTokens.list(8453, { config, filters });
 
 ### 2. Addresses Are Always Lowercase
 
-All responses return lowercase addresses. The API accepts any case but normalizes to lowercase.
+All responses return lowercase addresses. The API accepts any case but normalizes responses to lowercase.
 
 ### 3. Pagination Pattern
 
@@ -137,8 +135,8 @@ Import and check with `instanceof`:
 
 - `HydricInvalidParamsError` - Client-side validation failed
 - `HydricUnauthorizedError` - API key issue
-- `HydricNotFoundError` - Resource doesn't exist
-- `HydricRateLimitError` - Implement backoff
+- `HydricNotFoundError` - Specific requested resource doesn't exist
+- `HydricRateLimitError` - Too many requests for the API Key tier
 - `HydricError` - Generic error
 
 ---
@@ -156,7 +154,7 @@ const { tokens } = await hydric.multichainTokens.search({ search: "USDC" });
 ### Workflow 2: Chain-Specific List
 
 ```javascript
-// User: "Show me tokens on Base"
+// User: "Show me top tokens on Base ordered by tvl"
 const { tokens } = await hydric.singleChainTokens.list(8453, {
   config: { orderBy: { field: "tvl", direction: "desc" } },
 });
