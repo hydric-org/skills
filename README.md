@@ -51,11 +51,11 @@ Comprehensive guide for interacting with the hydric Token Baskets. Use this skil
 1. Get many tokens from a sector (e.g. stablecoins, LSTs, etc.)
 2. Get token baskets info (e.g. name, logo, description, tokens, etc.)
 
-### [Hydric Gateway SDK User](./skills/hydric-gateway-sdk-user)
+### [Hydric Gateway JavaScript/TypeScript SDK User](./skills/hydric-gateway-js-ts-sdk-user)
 
-**Name:** `hydric-gateway-sdk-user`
+**Name:** `hydric-gateway-js-ts-sdk-user`
 
-Comprehensive guide for interacting with the hydric Gateway SDK. Use this skill when you need to:
+Comprehensive guide for interacting with the hydric Gateway JavaScript/TypeScript SDK. Use this skill when you need to:
 
 1. Query real-time Liquidity Pool data (TVL, Volume, Fees, Yields, etc.).
 2. Fetch token metadata, prices, and liquidity pool metrics.
