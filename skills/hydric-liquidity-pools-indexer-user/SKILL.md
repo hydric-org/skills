@@ -1,11 +1,11 @@
 ---
 name: hydric-liquidity-pools-indexer-user
-description: Comprehensive guide for interacting with the Hydric Liquidity Pools Indexer (Envio/HyperIndex). Use this skill when you need to (1) Query real-time Liquidity Pool data like TVL, Volume, Fees, or Yields/APY, (2) Fetch cross-chain token metadata and prices, (3) Aggregate protocol data (Uniswap, etc.), (4) Retrieve historical time-series data for generic analytics, or (5) Understand the specific 'tracked' vs 'untracked' value safety rules of the indexer.
+description: Comprehensive guide for interacting with the hydric Liquidity Pools Indexer (Envio/HyperIndex). Use this skill when you need to (1) Query real-time Liquidity Pool data like TVL, Volume, Fees, or Yields/APY, (2) Fetch cross-chain token metadata and prices, (3) Aggregate protocol data (Uniswap, etc.), (4) Retrieve historical time-series data for generic analytics
 ---
 
 ## Liquidity Pools Indexer Overview
 
-The Hydric Liquidity Pools Indexer is a high-performance indexer built on **Envio HyperIndex**. It aggregates liquidity data across multiple blockchains into a unified Postgres database, accessible via a **Hasura-style GraphQL API**.
+The hydric Liquidity Pools Indexer is a high-performance indexer built on **Envio HyperIndex**. It aggregates liquidity data across multiple blockchains into a unified Postgres database, accessible via a **Hasura-style GraphQL API**.
 
 **Endpoint**: The indexer endpoint is typically provided in the environment variables (e.g., `INDEXER_URL`).
 **Schema**: The schema is available at https://github.com/hydric-org/liquidity-pools-indexer/blob/main/schema.graphql.
@@ -30,14 +30,14 @@ Represents a token deployed on a specific blockchain.
 
 - **Key Fields**: `id`, `tokenAddress`, `symbol`, `name`, `decimals`.
 - **Metrics**: `trackedUsdPrice`, `trackedTotalValuePooledUsd` (Liquidity), `trackedSwapVolumeUsd`.
-- **Search**: `normalizedSymbol`, `normalizedName` (for fuzzy matching).
+- **Search**: `normalizedSymbol`, `normalizedName` (Representations of the token symbol and name without special characters, for example `USD₮` -> `USDT`).
 
 ### 3. `PoolHistoricalData`
 
 Time-series snapshots for charting.
 
 - **Granularity**: `interval` (e.g., `DAILY`, `HOURLY`).
-- **Fields**: `timestampAtStart`, `trackedTotalValueLockedUsdAtStart`, `accumulatedVolume`, `accumulatedFees`.
+- **Key Fields (Not limited to these)**: `timestampAtStart`, `trackedTotalValueLockedUsdAtStart`, `intervalSwapVolumeUsd`, `intervalFeesUsd`, `intervalLiquidityInflowUsd`.
 
 ---
 
@@ -47,16 +47,13 @@ Time-series snapshots for charting.
 Entities follow a strict globally unique ID pattern: `<chainId>-<lowercase_address>`.
 
 - **Example**: USDC on Ethereum -> `1-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48`
-- **Rule**: Always lowercase addresses when constructing IDs manually.
+- **Rule**: all addresses are lowercase.
 
 **Supported Chain IDs**:
 
-- **Ethereum**: `1`
-- **Base**: `8453`
-- **Scroll**: `534352`
-- **Polygon**: `137`
-- **Monad**: `143`
-- **Unichain**: `130`
+You can find the supported chain IDs in this file: https://github.com/hydric-org/liquidity-pools-indexer/blob/7586588dcc9b507ca647f498c7ab8af5fefd4eef/src/core/network/indexer-network.ts#L5-L13
+
+in the `IndexerNetwork` enum will be all chain IDs that the lastest version of the indexer currently supports
 
 ---
 
@@ -74,14 +71,14 @@ The indexer computes values raw (Untracked) and with safety filters (Tracked).
 For search functionality, never query only `symbol` directly, use `normalizedSymbol`, `normalizedName`, `symbol` and `name` to ensure maximum coverage.
 
 - **Use**: `normalizedSymbol` and `normalizedName`.
-- **Why**: Handles "USD₮" -> "USDT" conversion and ignores emojis/special chars.
+- **Why**: Handles "USD₮" -> "USDT" conversion. **Attention:** Emojis will keep their emojis (not removed or converted).
 - **Pattern**: `where: { normalizedSymbol: { _ilike: "%USDT%" } }`
 
-### 3. Numbers are Strings
+### 3. Numbers with decimals are returned as Strings
 
-**CRITICAL**: All financial values (TVL, Volume, Prices) are returned as **Strings** in GraphQL to preserve BigInt/Decimal precision.
+**CRITICAL**: All financial values (TVL, Volume, Prices) that have decimals are returned as **Strings** in GraphQL to preserve decimal precision and maximum accuracy.
 
-- **Action**: Use `Number()` or `BigInt()` parsing in your code after fetching.
+- **Action**: Use `Number()`, `BigInt()` (or equivalent) parsing in your code after fetching.
 
 ---
 
@@ -109,9 +106,15 @@ query GetPoolsWithMetadata {
       hooks
       stateView
     }
+    slipstreamPoolData {
+      hooks
+      stateView
+    }
   }
 }
 ```
+
+**Reminder:** You can find all the possible nested objects in the [schema.graphql](https://github.com/hydric-org/liquidity-pools-indexer/blob/7586588dcc9b507ca647f498c7ab8af5fefd4eef/schema.graphql#L83C1-L86C41) at the `Pool` type
 
 ### Retrieving Token Prices & Liquidity
 
@@ -122,11 +125,21 @@ query GetTokenPricing {
   SingleChainToken(where: { symbol: { _eq: "WETH" } }) {
     id
     chainId
-    trackedUsdPrice # Current price in USD
-    trackedTotalValuePooledUsd # Total liquidity across all indexed pools
+    trackedUsdPrice # Current price in USD with safety checks
+    usdPrice # Current price in USD without safety checks (pure pools values)
   }
 }
 ```
+
+---
+
+## Wrapped native and native data interoperability
+
+Wrapped native and native (represented by the zero address) share the same metrics and data, but maintain their own distinct metadata.
+
+**Synchronization:** Any update to a token's data (e.g., `usdPrice`, `trackedUsdPrice`, `swapVolumeUsd`, `totalValuePooledUsd`, etc.) on one entity is automatically mirrored to its companion. Metadata fields (`name`, `symbol`, `decimals`, `tokenAddress`) are never synchronized.
+
+**Example:** WETH and ETH will always have identical pricing and volume stats, but will have different IDs, symbols, and names.
 
 ---
 
@@ -198,16 +211,11 @@ query GetPoolHistory($poolId: String!) {
   PoolHistoricalData(
     limit: 90
     order_by: { timestampAtStart: asc }
-    where: { poolId: { _eq: $poolId }, interval: { _eq: DAILY } }
+    where: { pool_id: { _eq: $poolId }, interval: { _eq: DAILY } }
   ) {
     timestampAtStart
     trackedTotalValueLockedUsdAtStart
-    accumulatedVolume
-    accumulatedFees
-    open
-    high
-    low
-    close
+    intervalSwapVolumeUsd
   }
 }
 ```
