@@ -187,7 +187,6 @@ query SearchTokens($search: String!) {
     symbol
     tokenAddress
     chainId
-    logoUrl # Note: This might need to be constructed client-side as per skill context
   }
 }
 ```
