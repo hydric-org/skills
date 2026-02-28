@@ -11,15 +11,15 @@ You are an **SDK Integration Specialist** for `@hydric/gateway`. This skill help
 
 ## 📚 Where to Find Things
 
-| What You Need           | Where to Look                                                                    |
-| :---------------------- | :------------------------------------------------------------------------------- |
-| **Full SDK Docs**       | https://docs.hydric.org/sdk-reference/typescript                                 |
-| **Live Docs MCP Server**     | https://docs.hydric.org/mcp                                                      |
-| **Source Code**         | https://github.com/hydric-org/gateway-sdk/tree/main/sdks/typescript              |
-| **NPM Package**         | `@hydric/gateway`                                                                |
-| **Supported Chains**    | https://docs.hydric.org/overview/supported-blockchains                           |
-| **Basket IDs**          | https://docs.hydric.org/sdk-reference/typescript/token-baskets#available-baskets |
-| **Supported Protocols** | https://docs.hydric.org/overview/supported-protocols                             |
+| What You Need            | Where to Look                                                                    |
+| :----------------------- | :------------------------------------------------------------------------------- |
+| **Full SDK Docs**        | https://docs.hydric.org/sdk-reference/typescript                                 |
+| **Live Docs MCP Server** | https://docs.hydric.org/mcp                                                      |
+| **Source Code**          | https://github.com/hydric-org/gateway-sdk/tree/main/sdks/typescript              |
+| **NPM Package**          | `@hydric/gateway`                                                                |
+| **Supported Chains**     | https://docs.hydric.org/overview/supported-blockchains                           |
+| **Basket IDs**           | https://docs.hydric.org/sdk-reference/typescript/token-baskets#available-baskets |
+| **Supported Protocols**  | https://docs.hydric.org/overview/supported-protocols                             |
 
 ---
 
@@ -40,7 +40,7 @@ Node version >= 18 is recommended.
 The SDK has **one client** and **some resources**:
 
 ```javascript
-import { HydricGateway } from "@hydric/gateway";
+import { HydricGateway } from '@hydric/gateway';
 
 const hydric = new HydricGateway({
   apiKey: process.env.HYDRIC_API_KEY,
@@ -50,13 +50,15 @@ const hydric = new HydricGateway({
 hydric.multichainTokens; // Multi-chain token aggregation
 hydric.singleChainTokens; // Single-chain token operations (faster)
 hydric.tokenBaskets; // Curated token baskets of many sectors
+hydric.liquidityPools; // Global liquidity pool and pair discovery
 ```
 
-### Token Resource Selection Rule
+### Resource Selection Rule
 
-- User mentions a **specific chain**? → Use `singleChainTokens`
-- User wants **global view**? → Use `multichainTokens`
-- User wants **curated groups** (stablecoins, BTCs, LSTs)? → Use `tokenBaskets`
+- User mentions a **specific chain** to get tokens? → Use `singleChainTokens`
+- User wants **global view** of tokens? → Use `multichainTokens`
+- User wants **curated groups** of tokens (stablecoins, BTCs, LSTs)? → Use `tokenBaskets`
+- User wants to find **DEX pools, liquidity, or token pairs**? → Use `liquidityPools`
 
 ---
 
@@ -64,11 +66,11 @@ hydric.tokenBaskets; // Curated token baskets of many sectors
 
 ```javascript
 // 1. Initialize
-const hydric = new HydricGateway({ apiKey: "sk_..." });
+const hydric = new HydricGateway({ apiKey: 'sk_...' });
 
 // 2. Call a resource method
 const { tokens } = await hydric.multichainTokens.search({
-  search: "USDC",
+  search: 'USDC',
   config: { limit: 10 },
 });
 
@@ -76,7 +78,7 @@ const { tokens } = await hydric.multichainTokens.search({
 try {
   const data = await hydric.tokenBaskets.getSingleChainById({
     chainId: 8453,
-    basketId: "usd-stablecoins",
+    basketId: 'usd-stablecoins',
   });
 } catch (error) {
   if (error instanceof HydricRateLimitError) {
@@ -95,12 +97,12 @@ try {
 ### `multichainTokens`
 
 **When**: User wants tokens across ALL chains or multiple chains at once.
-**Methods**: `list()`, `search({ search })`  
+**Methods**: `list()`, `search({ search })`
 
 ### `singleChainTokens`
 
 **When**: User specified ONE chain for getting tokens  
-**Methods**: `list(chainId, params)`, `search(chainId, { search })`  
+**Methods**: `list(chainId, params)`, `search(chainId, { search })`
 
 ### `tokenBaskets`
 
@@ -110,6 +112,19 @@ try {
 - `list()` - All baskets
 - `getMultiChainById({ basketId })` - Basket across chains
 - `getSingleChainById({ chainId, basketId })` - Basket on one chain
+
+### `liquidityPools`
+
+**When**: User wants to find liquidity pools across Dexes (Uniswap V3/V4, Algebra) matching specific tokens, baskets, TVL, or protocols.  
+**Methods**: `search({ tokensA, tokensB, basketsA, basketsB, filters, config })`
+
+> **Agent Pro-Tip:** `basketsA` and `basketsB` enable powerful server-side basket resolution (e.g., finding any stablecoin pool) without needing hundreds of addresses. However, **you MUST know the correct basket IDs** either from a previous `tokenBaskets.list()` call or because the user provided them.
+>
+> **Pair Matching Logic:**
+>
+> - `tokensA` only: Returns pools containing at least one token from A.
+> - `tokensA` + `tokensB`: Returns pools containing one token from A **AND** one token from B (direct pair matching).
+> - This logic applies equally to `basketsA` and `basketsB`, allowing for searches like "Any Stablecoin vs ETH".
 
 ---
 
@@ -159,7 +174,7 @@ Import and check with `instanceof`:
 
 ```javascript
 // User: "Find USDC everywhere"
-const { tokens } = await hydric.multichainTokens.search({ search: "USDC" });
+const { tokens } = await hydric.multichainTokens.search({ search: 'USDC' });
 // Each token has: addresses: [{ chainId: 1, address: '0x...' }, ...]
 ```
 
@@ -168,7 +183,7 @@ const { tokens } = await hydric.multichainTokens.search({ search: "USDC" });
 ```javascript
 // User: "Show me top tokens on Base ordered by tvl"
 const { tokens } = await hydric.singleChainTokens.list(8453, {
-  config: { orderBy: { field: "tvl", direction: "desc" } },
+  config: { orderBy: { field: 'tvl', direction: 'desc' } },
 });
 ```
 
@@ -178,9 +193,34 @@ const { tokens } = await hydric.singleChainTokens.list(8453, {
 // User: "Get all stablecoins on Ethereum"
 const { basket } = await hydric.tokenBaskets.getSingleChainById({
   chainId: 1,
-  basketId: "usd-stablecoins",
+  basketId: 'usd-stablecoins',
 });
 // basket.tokens = [{ symbol: 'USDC', address: '0x...' }, ...]
+```
+
+### Workflow 4: Discover Pair Liquidity
+
+```javascript
+// User: "Find high TVL USDC-ETH pools on Base"
+const { pools } = await hydric.liquidityPools.search({
+  tokensA: [{ chainId: 8453, address: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' }], // USDC
+  tokensB: [{ chainId: 8453, address: '0x0000000000000000000000000000000000000000' }], // ETH
+  config: { limit: 5, orderBy: { field: 'tvl', direction: 'desc' } },
+  filters: { minimumTotalValueLockedUsd: 100000 },
+});
+// pools = [{ address: '0x...', protocol: { name: 'Uniswap V3' }, balance: { totalValueLockedUsd: 500000 } }, ...]
+```
+
+### Workflow 5: Direct Pair Matching (Basket vs Basket)
+
+```javascript
+// User: "I want to see liquidity between any Stablecoin and any BTC-pegged token"
+const { pools } = await hydric.liquidityPools.search({
+  basketsA: [{ basketId: 'usd-stablecoins' }],
+  basketsB: [{ basketId: 'btc-pegged-tokens' }],
+  config: { limit: 10 },
+});
+// The API resolves both baskets and returns only pools matching (any Stable) <-> (any BTC)
 ```
 
 ---
@@ -199,15 +239,17 @@ Before writing code:
 
 ## 🔍 Quick Method Lookup
 
-| Task                      | Code                                                            |
-| :------------------------ | :-------------------------------------------------------------- |
-| List tokens globally      | `hydric.multichainTokens.list({ config, filters })`             |
-| List tokens on chain      | `hydric.singleChainTokens.list(chainId, { config, filters })`   |
-| Search globally           | `hydric.multichainTokens.search({ search, config })`            |
-| Search on chain           | `hydric.singleChainTokens.search(chainId, { search, config })`  |
-| Get all baskets           | `hydric.tokenBaskets.list()`                                    |
-| Get basket (multi-chain)  | `hydric.tokenBaskets.getMultiChainById({ basketId })`           |
-| Get basket (single chain) | `hydric.tokenBaskets.getSingleChainById({ chainId, basketId })` |
+| Task                      | Code                                                                  |
+| :------------------------ | :-------------------------------------------------------------------- |
+| List tokens globally      | `hydric.multichainTokens.list({ config, filters })`                   |
+| List tokens on chain      | `hydric.singleChainTokens.list(chainId, { config, filters })`         |
+| Search globally           | `hydric.multichainTokens.search({ search, config })`                  |
+| Search on chain           | `hydric.singleChainTokens.search(chainId, { search, config })`        |
+| Get all baskets           | `hydric.tokenBaskets.list()`                                          |
+| Get basket (multi-chain)  | `hydric.tokenBaskets.getMultiChainById({ basketId })`                 |
+| Get basket (single chain) | `hydric.tokenBaskets.getSingleChainById({ chainId, basketId })`       |
+| Search liquidity pools    | `hydric.liquidityPools.search({ tokensA, tokensB, filters, config })` |
+| Search pools by baskets   | `hydric.liquidityPools.search({ basketsA, basketsB, config })`        |
 
 ---
 
