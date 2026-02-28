@@ -110,11 +110,33 @@ Get most liquid tokens across chains:
 
 ### Pattern D: Token Baskets (Stablecoins, LSTs, etc.)
 
-Get curated token groups:
+Get curated token groups. There are two ways to use baskets:
+
+**1. The Manual Extraction Workflow (Read-Only):**
 
 1. `GET /v1/tokens/baskets` → list all basket IDs.
 2. `GET /v1/tokens/baskets/{basketId}` → e.g., `usd-stablecoins`.
 3. Use `addresses` field for all token addresses in that basket.
+
+**2. The Accelerated Search Workflow (Server-Side Resolution):**
+When searching for pools, you do not need to extract the token addresses manually. You can pass the baskets directly to the API, and the Gateway will resolve them server-side into tokens. Be sure to provide at least one of `basketsA` or `tokensA`.
+
+```json
+POST /v1/pools/search
+{
+  "basketsA": [
+    {
+      "basketId": "usd-stablecoins",
+      "chainIds": [1, 8453] // Optional: filters the basket before searching. If not provided, the basket will be searched across all chains.
+    }
+  ],
+  "tokensB": [
+    { "chainId": 1, "address": "0x0000000000000000000000000000000000000000" }
+  ]
+}
+```
+
+_Note: This request will find pools containing ANY stablecoin on Ethereum/Base matched against Native ETH on Ethereum._
 
 **Available Baskets:** `usd-stablecoins`, `eth-pegged-tokens`, `btc-pegged-tokens`, `eur-stablecoins`, `xau-stablecoins`, `monad-pegged-tokens`, `hype-pegged-tokens`.
 
@@ -189,8 +211,13 @@ When a user requests pools on a **specific chain** (e.g., "Find USDC pools only 
 - **Action:** Filter your internal mapping to include only the `address` + `chainId` pairs for the target network.
 - **Mapping:** Pass only these specific pairs into the `tokensA` or `tokensB` array. The API will automatically restrict the result set to the networks represented in your input.
 
-#### 2. Implementation Guardrail
+#### 2. Basket Chain Filtering
 
+The same implicit filtering logic applies to `IBlockchainBasket` objects provided in `basketsA` or `basketsB`. If you pass a `chainIds` array (e.g., `[8453]`) inside the basket object, the searching engine will explicitly constrain the basket's tokens to only those that exist on the requested chains before searching. If `chainIds` is completely omitted from the basket object, it defaults to all available networks for that basket.
+
+#### 3. Implementation Guardrail
+
+- **Validation Rule (`HasTokensOrBaskets`):** For both Side A and Side B, the API requires that you provide at least one search parameter. For example, `tokensA` OR `basketsA` MUST contain at least one element. You cannot send an empty array for both. If a side is providing the constraint, make sure to populate either the tokens or baskets array.
 - **Efficiency:** This implicit filtering is more efficient than a separate filter key. By narrowing the `BlockchainAddress[]` input at the start, you ensure the API only scans relevant network indices.
 - **Multi-Chain Filtering:** To target a small subset of chains (e.g., "Base and Scroll"), simply include the addresses for both networks in the array and exclude others.
 
